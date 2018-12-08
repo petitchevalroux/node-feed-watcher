@@ -1,26 +1,26 @@
 {
-  "name": "node-project",
-  "version": "1.0.0",
-  "description": "Empty node project",
-  "scripts": {
-    "test": "make tests"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://github.com/petitchevalroux/node-project.git"
-  },
-  "author": "Patrick Poulain",
-  "license": "GPL-3.0",
-  "bugs": {
-    "url": "https://github.com/petitchevalroux/node-project/issues"
-  },
-  "homepage": "https://github.com/petitchevalroux/node-project#readme",
-  "devDependencies": {
-    "eslint": "^4.19.1",
-    "eslint-plugin-promise": "^3.8.0",
-    "istanbul": "^0.4.5",
-    "js-beautify": "^1.8.9",
-    "mocha": "^4.0.1",
-    "sinon": "^4.1.3"
-  }
+    "name": "node-rss-watcher",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "test": "make tests"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+ssh://github.com/petitchevalroux/node-rss-watcher.git"
+    },
+    "author": "Patrick Poulain",
+    "license": "GPL-3.0",
+    "bugs": {
+        "url": "https://github.com/petitchevalroux/node-rss-watcher/issues"
+    },
+    "homepage": "https://github.com/petitchevalroux/node-rss-watcher#readme",
+    "devDependencies": {
+        "eslint": "^4.19.1",
+        "eslint-plugin-promise": "^3.8.0",
+        "istanbul": "^0.4.5",
+        "js-beautify": "^1.8.9",
+        "mocha": "^4.0.1",
+        "sinon": "^4.1.3"
+    }
 }
