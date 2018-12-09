@@ -6,7 +6,9 @@ const Promise = require("bluebird"),
     {
         Writable,
         pipeline
-    } = require("stream");
+    } = require("stream"),
+    path = require("path"),
+    LoggerStream = require(path.join(__dirname, "..", "streams", "logger"));
 
 class FeedReader {
     /**
@@ -43,6 +45,9 @@ class FeedReader {
         return new Promise((resolve, reject) => {
             const pipelineArgs = [
                 self.feedInStream,
+                new LoggerStream({
+                    message: "feedReader.run feedInStream>"
+                }),
                 parallel.transform(
                     (feed, encoding, callback) => {
                         self
@@ -57,10 +62,18 @@ class FeedReader {
                     }, {
                         objectMode: true,
                         concurrency: self.concurrency
-                    })
+                    }),
+                new LoggerStream({
+                    message: "feedReader.run parallel.transform>"
+                }),
             ];
             if (self.feedOutStream) {
-                pipelineArgs.push(self.feedOutStream);
+                pipelineArgs.push(
+                    new LoggerStream({
+                        message: "feedReader.run >feedOutStream"
+                    }),
+                    self.feedOutStream
+                );
             }
             // Pipeline final argument is a callback
             pipelineArgs.push((error) => {
