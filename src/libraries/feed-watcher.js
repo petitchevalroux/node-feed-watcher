@@ -25,7 +25,6 @@ class FeedWatcher {
      */
     onProcessedFeed(timeouts, feed) {
         logger.debug("FeedWatcher.onProcessedFeed", feed);
-        const self = this;
         return new Promise(resolve => {
             const timeout = setTimeout(
                 () => {
@@ -93,7 +92,7 @@ class FeedWatcher {
             logger.debug("FeedWatcher.start feedReader.feedInStream end");
         });
         // We do not pipe because end must not be emitted
-        feedInStream.on("data", data=>{
+        feedInStream.on("data", data => {
             feedReader.feedInStream.write(data);
         });
         feedReader.run();

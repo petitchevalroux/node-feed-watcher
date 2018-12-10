@@ -1,0 +1,3 @@
+https://www.lemonde.fr/rss/une.xml
+http://rss.liberation.fr/rss/latest/
+http://www.lefigaro.fr/rss/figaro_flash-actu.xml
