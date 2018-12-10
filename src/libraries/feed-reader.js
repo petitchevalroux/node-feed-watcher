@@ -4,8 +4,11 @@ const Promise = require("bluebird"),
     FeedParser = require("feedparser"),
     got = require("got"),
     {
-        Writable
-    } = require("stream");
+        Writable,
+        pipeline
+    } = require("stream"),
+    path = require("path"),
+    LoggerStream = require(path.join(__dirname, "..", "streams", "logger"));
 
 class FeedReader {
     /**
@@ -39,42 +42,47 @@ class FeedReader {
      */
     run() {
         const self = this;
-        return new Promise((resolve) => {
-            self
-                .feedInStream
-                .pipe(
-                    parallel.transform(
-                        (feed, encoding, callback) => {
-                            self
-                                .process(feed.url)
-                                .then(() => {
-                                    callback(null, feed);
-                                    return feed;
-                                })
-                                .catch(error => {
-                                    callback(error);
-                                });
-                        }, {
-                            objectMode: true,
-                            concurrency: self.concurrency
-                        }
-                    ))
-                .on("data", feed => {
-                    if (self.feedOutStream) {
-                        self.feedOutStream.write(feed);
-                    }
-                })
-                .on("error", error => {
-                    if (self.feedOutStream) {
-                        self.feedOutStream.emit("error", error);
-                    }
-                })
-                .on("end", () => {
-                    if (self.feedOutStream) {
-                        self.feedOutStream.end();
-                    }
-                    resolve();
-                });
+        return new Promise((resolve, reject) => {
+            const pipelineArgs = [
+                self.feedInStream,
+                new LoggerStream({
+                    message: "feedReader.run feedInStream>"
+                }),
+                parallel.transform(
+                    (feed, encoding, callback) => {
+                        self
+                            .process(feed.url)
+                            .then(() => {
+                                callback(null, feed);
+                                return feed;
+                            })
+                            .catch(error => {
+                                callback(error);
+                            });
+                    }, {
+                        objectMode: true,
+                        concurrency: self.concurrency
+                    }),
+                new LoggerStream({
+                    message: "feedReader.run parallel.transform>"
+                }),
+            ];
+            if (self.feedOutStream) {
+                pipelineArgs.push(
+                    new LoggerStream({
+                        message: "feedReader.run >feedOutStream"
+                    }),
+                    self.feedOutStream
+                );
+            }
+            // Pipeline final argument is a callback
+            pipelineArgs.push((error) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve();
+            });
+            pipeline.apply(null, pipelineArgs);
         });
     }
     /**
