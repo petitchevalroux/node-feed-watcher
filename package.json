@@ -28,9 +28,11 @@
   },
   "dependencies": {
     "bluebird": "^3.5.3",
+    "byline": "^5.0.0",
     "feedparser": "^2.2.9",
     "got": "^9.3.2",
     "parallel-stream": "^1.1.2",
-    "winston": "^3.1.0"
+    "winston": "^3.1.0",
+    "yargs": "^12.0.5"
   }
 }
