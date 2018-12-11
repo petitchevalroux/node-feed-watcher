@@ -32,7 +32,7 @@ class FeedReader {
         if (!this.concurrency) {
             this.concurrency = 10;
         }
-        this.articlesOutStream.on("end",()=>{
+        this.articlesOutStream.on("end", () => {
             logger.debug("feedReader.articlesOutStream end");
         });
     }
@@ -80,13 +80,19 @@ class FeedReader {
                 );
             }
             // Pipeline final argument is a callback
-            pipelineArgs.push((error) => {
+            pipelineArgs.push(error => {
                 if (error) {
                     logger.error("feedReader.run error", error);
                     return reject(error);
                 }
-                logger.debug("feedReader.run end", error);
-                resolve();
+                self.articlesOutStream.end(error => {
+                    if (error) {
+                        logger.error("feedReader.run error", error);
+                        return reject(error);
+                    }
+                    logger.debug("feedReader.run end");
+                    resolve();
+                });
             });
             pipeline.apply(null, pipelineArgs);
         });
