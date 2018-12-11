@@ -25,13 +25,14 @@ class FeedWatcher {
      */
     onProcessedFeed(timeouts, feed) {
         logger.debug("FeedWatcher.onProcessedFeed", feed);
+        const self = this;
         return new Promise(resolve => {
             const timeout = setTimeout(
                 () => {
                     timeouts.delete(timeout);
                     resolve(feed);
                 },
-                Math.round(1000)
+                Math.round(self.frequency * 1000)
             );
             timeouts.add(timeout);
         });
