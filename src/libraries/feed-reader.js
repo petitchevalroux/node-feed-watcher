@@ -8,7 +8,8 @@ const Promise = require("bluebird"),
         pipeline
     } = require("stream"),
     path = require("path"),
-    LoggerStream = require(path.join(__dirname, "..", "streams", "logger"));
+    LoggerStream = require(path.join(__dirname, "..", "streams", "logger")),
+    logger = require(path.join(__dirname, "..", "dependencies", "logger"));
 
 class FeedReader {
     /**
@@ -78,8 +79,10 @@ class FeedReader {
             // Pipeline final argument is a callback
             pipelineArgs.push((error) => {
                 if (error) {
+                    logger.error("feedReader.run error", error);
                     return reject(error);
                 }
+                logger.debug("feedReader.run end", error);
                 resolve();
             });
             pipeline.apply(null, pipelineArgs);
