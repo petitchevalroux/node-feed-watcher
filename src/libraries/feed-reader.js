@@ -32,6 +32,9 @@ class FeedReader {
         if (!this.concurrency) {
             this.concurrency = 10;
         }
+        this.articlesOutStream.on("end",()=>{
+            logger.debug("feedReader.articlesOutStream end");
+        });
     }
     /**
      * Run feedreader, it will read feeds from feedInStream and write found articles in articlesOutStream
