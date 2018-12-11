@@ -31,7 +31,7 @@ module.exports = (argv) => {
             readableObjectMode: false,
             writableObjectMode: true,
             transform: (chunk, undefined, callback) => {
-                callback(null, `\n${JSON.stringify(chunk)}`);
+                callback(null, `\n${new Date()} - ${JSON.stringify(chunk)}`);
             }
         }))
         .pipe(process.stdout);
