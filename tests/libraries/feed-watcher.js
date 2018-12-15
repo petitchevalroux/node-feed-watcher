@@ -5,7 +5,9 @@ const path = require("path"),
         "feed-watcher")),
     assert = require("assert"),
     sinon = require("sinon"),
-    Promise = require("bluebird");
+    {
+        PassThrough
+    } = require("stream");
 
 describe("libraries/feedWatcher", () => {
     const sandbox = sinon.sandbox.create();
@@ -13,6 +15,7 @@ describe("libraries/feedWatcher", () => {
     beforeEach(() => {
         sandbox.restore();
     });
+
     describe("constructor", () => {
         it("set default frequency", () => {
             const feedWatcher = new FeedWatcher();
@@ -21,88 +24,74 @@ describe("libraries/feedWatcher", () => {
     });
 
     describe("start", () => {
-        const feedWatcher = new FeedWatcher(),
-            stubFeedReaderProcess = (feedReader, feedUrl, articles) => {
-                feedReader.process.withArgs(feedUrl).callsFake(() => {
-                    return Promise.all(articles.map(article => {
-                        return new Promise((resolve, reject) => {
-                            feedReader.articlesOutStream
-                                .write(article, (error => {
-                                    if (error) {
-                                        return reject(
-                                            error
-                                        );
-                                    }
-                                    resolve();
-                                }));
-                        });
-                    }))
-                        .then(() => {
-                            return;
-                        });
-                });
-            };
-
-
-        it("stop when input stream is ended", (done) => {
-            const {
-                feedInStream
-            } = feedWatcher.start();
-            feedInStream.end();
-            done();
-        });
-
-        it("process feeds writen in input", (done) => {
-            feedWatcher.frequency = 0.001;
-            const {
-                    feedInStream,
-                    articlesOutStream,
-                    feedReader
-                } = feedWatcher.start(),
-                articlesOut = [];
-            sandbox.stub(feedReader, "process");
-            stubFeedReaderProcess(
-                feedReader,
-                "http://example.com/feed-1",
-                [{
-                    url: "http://example.com/feed-1/article-1",
-                    title: "http://example.com/feed-1/article-1",
-                },
-                {
-                    url: "http://example.com/feed-1/article-2",
-                    title: "http://example.com/feed-1/article-2",
-                },
-                ]);
-            stubFeedReaderProcess(
-                feedReader,
-                "http://example.com/feed-2",
-                [{
-                    url: "http://example.com/feed-2/article-1",
-                    title: "http://example.com/feed-2/article-1",
-                },
-                {
-                    url: "http://example.com/feed-2/article-2",
-                    title: "http://example.com/feed-2/article-2",
-                },
-                ]);
-            articlesOutStream.on("data", article => {
-                articlesOut.push(article);
-            });
-            articlesOutStream.on("end", () => {
-                assert.equal(articlesOut.length, 4);
+        it("call feedReader.run", (done) => {
+            const feedWatcher = new FeedWatcher();
+            sandbox.stub(feedWatcher.feedReader, "run").callsFake(() => {
+                assert(feedWatcher.feedReader.run.called);
                 done();
             });
-            feedInStream.write({
-                url: "http://example.com/feed-1"
-            }, undefined, () => {
-                feedInStream.write({
-                    url: "http://example.com/feed-2"
-                }, undefined, () => {
-                    // We end in stream to stop the watcher
-                    feedReader.feedInStream.end();
-                });
-            });
+            feedWatcher.start();
         });
 
+        it("return a readable stream", () => {
+            const stream = (new FeedWatcher()).start();
+            assert.equal(typeof stream, "object");
+            assert.equal(typeof stream.read, "function");
+            assert.equal(typeof stream.pipe, "function");
+            assert.equal(typeof stream.on, "function");
+        });
     });
+
+    describe("add", () => {
+        it("write readable stream content to feedReader.feedsInStream", () => {
+            const feedWatcher = new FeedWatcher(),
+                stream = new PassThrough({
+                    objectMode: true
+                }),
+                feeds = [];
+            feedWatcher.feedReader.feedInStream.on("data", (feed) => {
+                feeds.push(feed);
+            });
+            stream.write({
+                "url": "http://example.com/feed-1"
+            }, undefined, () => {
+                stream.write({
+                    "url": "http://example.com/feed-2"
+                }, undefined, () => {
+                    stream.end();
+                });
+            });
+
+            return feedWatcher.add(stream).then(() => {
+                assert.deepEqual(
+                    feeds,
+                    [{
+                        url: "http://example.com/feed-1"
+                    },
+                    {
+                        url: "http://example.com/feed-2"
+                    }
+                    ]);
+                return feeds;
+            });
+        });
+    });
+
+    it("copy finished feeds to feedReader.feedInStream according to frequency", (done) => {
+        const feedWatcher = new FeedWatcher({
+            frequency: 0.1
+        });
+        feedWatcher.feedReader.feedInStream.on("data", (data) => {
+            assert(((new Date()).getTime() - data.date.getTime()) >=
+                feedWatcher.frequency * 1000);
+            done();
+        });
+        feedWatcher.feedReader.feedOutStream.write({
+            "url": "http://example.com/feed-2",
+            "date": new Date()
+        });
+    });
+
+
+
 });

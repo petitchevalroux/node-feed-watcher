@@ -8,25 +8,24 @@ const fs = require("fs"),
     } = require("stream"),
     process = require("process");
 module.exports = (argv) => {
-    const {
-        feedInStream,
-        articlesOutStream
-    } = feedWatcher.start();
-    byline
-        .createStream(
-            fs.createReadStream(argv.input))
-        .pipe(new Transform({
-            readableObjectMode: true,
-            writableObjectMode: false,
-            transform: (chunk, undefined, callback) => {
-                callback(null, {
-                    url: chunk.toString()
-                });
-            }
-        }))
-        .pipe(feedInStream);
+    feedWatcher.add(
+        byline
+            .createStream(fs.createReadStream(argv.input))
+            .pipe(
+                new Transform({
+                    readableObjectMode: true,
+                    writableObjectMode: false,
+                    transform: (chunk, undefined, callback) => {
+                        callback(null, {
+                            url: chunk.toString()
+                        });
+                    }
+                })
+            )
+    );
 
-    articlesOutStream
+    feedWatcher
+        .start()
         .pipe(new Transform({
             readableObjectMode: false,
             writableObjectMode: true,
