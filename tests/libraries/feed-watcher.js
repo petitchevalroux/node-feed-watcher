@@ -120,7 +120,39 @@ describe("libraries/feedWatcher", () => {
         feedWatcher.feedReader.articlesOutStream.write({
             url: "http://www.example.com/2"
         });
+        // We end instream to stop watcher
         feedWatcher.feedReader.feedInStream.end();
+    });
+
+
+    it("don't process feed if it is in processing set", () => {
+        const feedWatcher = new FeedWatcher(),
+            stream = new PassThrough({
+                objectMode: true
+            }),
+            feeds = [];
+        feedWatcher.processingFeedsSet.add("http://example.com/feed-1");
+        feedWatcher.feedReader.feedInStream.on("data", (feed) => {
+            feeds.push(feed);
+        });
+        stream.write({
+            "url": "http://example.com/feed-1"
+        }, undefined, () => {
+            stream.write({
+                "url": "http://example.com/feed-2"
+            }, undefined, () => {
+                stream.end();
+            });
+        });
+
+        return feedWatcher.add(stream).then(() => {
+            assert.deepEqual(
+                feeds,
+                [{
+                    url: "http://example.com/feed-2"
+                }]);
+            return feeds;
+        });
     });
 
 

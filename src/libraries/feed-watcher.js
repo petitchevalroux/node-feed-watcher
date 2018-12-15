@@ -19,11 +19,26 @@ class FeedWatcher {
         if (!this.articlesSet) {
             this.articlesSet = new DefaultSet();
         }
+        if (!this.processingFeedsSet) {
+            this.processingFeedsSet = new DefaultSet();
+        }
         this.processingTimeouts = new Set();
         const self = this;
         this.feedReader = new FeedReader({
-            feedInStream: new PassThrough({
-                objectMode: true
+            feedInStream: new Transform({
+                objectMode: true,
+                transform: (feed, encoding, callback) => {
+                    self.processingFeedsSet.add(feed.url)
+                        .then(added => {
+                            if (!added) {
+                                return callback();
+                            }
+                            return callback(null, feed);
+                        })
+                        .catch(error => {
+                            callback(error);
+                        });
+                }
             }),
             feedOutStream: new Transform({
                 objectMode: true,
@@ -62,15 +77,17 @@ class FeedWatcher {
     onProcessedFeed(feed) {
         logger.debug("FeedWatcher.onProcessedFeed", feed);
         const self = this;
-        return new Promise(resolve => {
-            const timeout = setTimeout(
-                () => {
-                    self.processingTimeouts.delete(timeout);
-                    resolve(feed);
-                },
-                Math.round(self.frequency * 1000)
-            );
-            self.processingTimeouts.add(timeout);
+        return this.processingFeedsSet.delete(feed.url).then(() => {
+            return new Promise(resolve => {
+                const timeout = setTimeout(
+                    () => {
+                        self.processingTimeouts.delete(timeout);
+                        resolve(feed);
+                    },
+                    Math.round(self.frequency * 1000)
+                );
+                self.processingTimeouts.add(timeout);
+            });
         });
     }
 
@@ -132,7 +149,6 @@ class FeedWatcher {
             clearTimeout(timeout);
         }
     }
-
 
 }
 module.exports = FeedWatcher;
