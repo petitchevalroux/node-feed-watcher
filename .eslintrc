@@ -30,5 +30,8 @@
     "extends": "eslint:recommended",
     "plugins": [
         "promise"
-    ]
+    ],
+    "parserOptions": {
+        "ecmaVersion": 2018
+    }
 }
