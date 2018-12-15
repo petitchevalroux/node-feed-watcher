@@ -8,12 +8,16 @@ const path = require("path"),
         Writable
     } = require("stream"),
     Promise = require("bluebird"),
-    logger = require(path.join(__dirname, "..", "dependencies", "logger"));
+    logger = require(path.join(__dirname, "..", "dependencies", "logger")),
+    DefaultSet = require(path.join(__dirname, "..", "sets", "memory"));
 class FeedWatcher {
     constructor(options) {
         Object.assign(this, options);
         if (!this.frequency) {
             this.frequency = 60;
+        }
+        if (!this.articlesSet) {
+            this.articlesSet = new DefaultSet();
         }
         this.processingTimeouts = new Set();
         const self = this;
@@ -104,7 +108,20 @@ class FeedWatcher {
      */
     start() {
         this.feedReader.run();
-        return this.feedReader.articlesOutStream;
+        const self = this;
+        return this.feedReader.articlesOutStream.pipe(new Transform({
+            "objectMode": true,
+            "transform": (article, endcoding, callback) => {
+                self.articlesSet.add(article.url).then(added => {
+                    if (!added) {
+                        return callback();
+                    }
+                    return callback(null, article);
+                }).catch(error => {
+                    callback(error);
+                });
+            }
+        }));
     }
 
     /**

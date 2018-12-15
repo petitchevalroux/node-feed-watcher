@@ -6,7 +6,8 @@ const path = require("path"),
     assert = require("assert"),
     sinon = require("sinon"),
     {
-        PassThrough
+        PassThrough,
+        Writable
     } = require("stream");
 
 describe("libraries/feedWatcher", () => {
@@ -90,6 +91,36 @@ describe("libraries/feedWatcher", () => {
             "url": "http://example.com/feed-2",
             "date": new Date()
         });
+    });
+
+    it("don't emit the same article twice", (done) => {
+        const feedWatcher = new FeedWatcher(),
+            articles = [],
+            articlesStream = feedWatcher.start();
+        articlesStream
+            .pipe(
+                new Writable({
+                    objectMode: true,
+                    write: (article, endcoding, callback) => {
+                        articles.push(article);
+                        callback();
+                    }
+                })
+            )
+            .on("finish", () => {
+                assert.equal(articles.length, 2);
+                done();
+            });
+        feedWatcher.feedReader.articlesOutStream.write({
+            url: "http://www.example.com/1"
+        });
+        feedWatcher.feedReader.articlesOutStream.write({
+            url: "http://www.example.com/1"
+        });
+        feedWatcher.feedReader.articlesOutStream.write({
+            url: "http://www.example.com/2"
+        });
+        feedWatcher.feedReader.feedInStream.end();
     });
 
 
