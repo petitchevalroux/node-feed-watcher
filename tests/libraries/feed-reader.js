@@ -10,7 +10,8 @@ const path = require("path"),
         PassThrough
     } = require("stream"),
     sinon = require("sinon"),
-    Promise = require("bluebird");
+    Promise = require("bluebird"),
+    nock = require("nock");
 
 describe("libraries/feedReader", () => {
 
@@ -18,6 +19,7 @@ describe("libraries/feedReader", () => {
 
     beforeEach(() => {
         sandbox.restore();
+        nock.restore();
     });
 
     describe("constructor", () => {
@@ -42,7 +44,7 @@ describe("libraries/feedReader", () => {
                         articlesOutStream: new Writable(),
                         feedInStream: new Readable()
                     })
-                        .concurrency), "number");
+                    .concurrency), "number");
         });
 
         it("set number concurrency", () => {
@@ -152,6 +154,39 @@ describe("libraries/feedReader", () => {
                     return;
                 });
         });
-    });
 
+        it("throw an error with name FeedRequestError when host do not respond", (
+            done) => {
+            feedReader.process("http://0.0.0.0/rss")
+                .catch(error => {
+                    assert.equal(error.name, "FeedRequestError");
+                    done();
+                });
+        });
+
+        it("throw an error code FeedHttpError and statusCode when 404", (done) => {
+            nock.activate();
+            nock("http://example.com/")
+                .get("/404")
+                .reply(404);
+            feedReader.process("http://example.com/404")
+                .catch(error => {
+                    assert.equal(error.name, "FeedHttpError");
+                    assert.equal(error.statusCode, 404);
+                    done();
+                });
+        });
+        it("throw an error code FeedHttpError and statusCode when 500", (done) => {
+            nock.activate();
+            nock("http://example.com/")
+                .get("/500")
+                .reply(500);
+            feedReader.process("http://example.com/500")
+                .catch(error => {
+                    assert.equal(error.name, "FeedHttpError");
+                    assert.equal(error.statusCode, 500);
+                    done();
+                });
+        });
+    });
 });

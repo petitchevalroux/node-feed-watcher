@@ -108,6 +108,21 @@ class FeedReader {
         return new Promise((resolve, reject) => {
             const feedParser = new FeedParser();
             got.stream.get(url)
+                .on("error", error => {
+                    if (error.name) {
+                        if(error.name === "RequestError") {
+                            return reject(Object.assign(error, {
+                                name: "FeedRequestError"
+                            }));
+                        }
+                        if(error.name === "HTTPError") {
+                            return reject(Object.assign(error, {
+                                name: "FeedHttpError"
+                            }));
+                        }
+                    }
+                    reject(error);
+                })
                 .pipe(feedParser)
                 .pipe(new Writable({
                     objectMode: true,
