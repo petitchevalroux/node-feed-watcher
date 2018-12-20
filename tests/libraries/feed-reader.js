@@ -44,7 +44,7 @@ describe("libraries/feedReader", () => {
                         articlesOutStream: new Writable(),
                         feedInStream: new Readable()
                     })
-                    .concurrency), "number");
+                        .concurrency), "number");
         });
 
         it("set number concurrency", () => {

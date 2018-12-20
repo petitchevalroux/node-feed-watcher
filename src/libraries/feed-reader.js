@@ -61,6 +61,13 @@ class FeedReader {
                                 return feed;
                             })
                             .catch(error => {
+                                if (
+                                    error.name === "FeedRequestError" ||
+                                    error.name === "FeedHttpError"
+                                ) {
+                                    logger.error(error);
+                                    return callback(null, feed);
+                                }
                                 callback(error);
                             });
                     }, {
@@ -110,12 +117,12 @@ class FeedReader {
             got.stream.get(url)
                 .on("error", error => {
                     if (error.name) {
-                        if(error.name === "RequestError") {
+                        if (error.name === "RequestError") {
                             return reject(Object.assign(error, {
                                 name: "FeedRequestError"
                             }));
                         }
-                        if(error.name === "HTTPError") {
+                        if (error.name === "HTTPError") {
                             return reject(Object.assign(error, {
                                 name: "FeedHttpError"
                             }));
